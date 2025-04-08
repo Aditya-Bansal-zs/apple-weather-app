@@ -21,18 +21,17 @@ class WeatherDataManager: WeatherManagerProtocol {
     var context: NSManagedObjectContext
 
     init() {
-        container =  NSPersistentContainer(name: "WeatherDatabase")
+        container = NSPersistentContainer(name: "WeatherDatabase")
         container.loadPersistentStores { description, error in
             if let error {
-                print("Error in initialize the container \(error.localizedDescription)")
-                return
+                fatalError("Core Data stack failed to load: \(error)")
             }
         }
         context = container.viewContext
     }
 
     private func fetchWeather() -> [WeatherEntity] {
-        let request = NSFetchRequest<WeatherEntity>(entityName: "WeatherEntity")
+        let request: NSFetchRequest<WeatherEntity> = WeatherEntity.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(key: "order", ascending: true)]
         do {
             return try context.fetch(request)
@@ -41,7 +40,13 @@ class WeatherDataManager: WeatherManagerProtocol {
             return []
         }
     }
+
     func addWeather(weather: WeatherCoreDataModel){
+        guard fetchWeatherEntity(id: weather.id) == nil else {
+            print("Weather with same ID already exists. Skipping insertion.")
+            return
+        }
+
         let newWeather = WeatherEntity(context: context)
         newWeather.id = weather.id
         newWeather.timezone = weather.timezone
@@ -60,6 +65,7 @@ class WeatherDataManager: WeatherManagerProtocol {
         newWeather.order = weather.order
         save()
     }
+
     func saveWeatherOrder(weathers: [WeatherCoreDataModel]) {
         for (index, weather) in weathers.enumerated() {
             if let storedWeather = fetchWeatherEntity(id: weather.id) {
@@ -80,14 +86,20 @@ class WeatherDataManager: WeatherManagerProtocol {
             return nil
         }
     }
+
     func deleteWeather(weather: WeatherCoreDataModel) {
+        if weather.order == 0 {
+            print("Cannot delete the home weather card.")
+            return
+        }
+
         let fetchRequest: NSFetchRequest<WeatherEntity> = WeatherEntity.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "id == %@", weather.id as NSUUID)
 
         do {
             let results = try context.fetch(fetchRequest)
             if let weatherEntity = results.first {
-                print("\(weatherEntity.city ?? "") \(weatherEntity.order)")
+                print("Deleting: \(weatherEntity.city ?? "") with order \(weatherEntity.order)")
                 context.delete(weatherEntity)
                 try context.save()
                 reorderWeather()
@@ -101,13 +113,21 @@ class WeatherDataManager: WeatherManagerProtocol {
     }
 
     private func reorderWeather() {
-        let results = fetchWeather() // Get latest order from Core Data
-        for (index, entity) in results.enumerated() {
-            entity.order = Int16(index)
+        var results = fetchWeather().sorted { $0.order < $1.order }
+
+        guard let homeWeather = results.first else { return }
+
+        let otherWeathers = results.dropFirst()
+
+        for (index, entity) in otherWeathers.enumerated() {
+            entity.order = Int16(index + 1)
         }
+
+        homeWeather.order = 0
+
         save()
     }
-    
+
     func updateWeather(id: UUID, newData: WeatherCoreDataModel) {
         let request: NSFetchRequest<WeatherEntity> = WeatherEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
@@ -134,28 +154,29 @@ class WeatherDataManager: WeatherManagerProtocol {
             print("Failed to update: \(error)")
         }
     }
+
     func mapEntityToModel() -> [WeatherCoreDataModel] {
         return fetchWeather().compactMap { entity in
             guard let storedID = entity.id else {
-                print(" Found AddressEntity with nil ID, skipping")
+                print("Found WeatherEntity with nil ID, skipping")
                 return nil
             }
             return WeatherCoreDataModel(
                 id: storedID,
                 timezone: entity.timezone,
-                city: entity.city ,
-                country: entity.country,
+                city: entity.city ?? "Unknown",
+                country: entity.country ?? "Unknown",
                 dt: entity.dt,
-                temp: entity.temp ,
+                temp: entity.temp,
                 maxTemp: entity.maxTemp,
                 minTemp: entity.minTemp,
                 sunrise: entity.sunrise,
                 sunset: entity.sunset,
-                weatherDescription: entity.weatherDescription,
+                weatherDescription: entity.weatherDescription ?? "No Description",
                 windSpeed: entity.windSpeed,
                 main: entity.main ?? "No weather",
                 home: entity.home,
-                order: entity.order 
+                order: entity.order
             )
         }.sorted { $0.order < $1.order }
     }
@@ -164,34 +185,32 @@ class WeatherDataManager: WeatherManagerProtocol {
         let fetchRequest: NSFetchRequest<WeatherEntity> = WeatherEntity.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "id == %@", weather.id as NSUUID)
         do {
-                let results = try context.fetch(fetchRequest)
-                if let storedWeather = results.first {
-                    // Update existing weather data
-                    storedWeather.timezone = weather.timezone
-                    storedWeather.city = weather.city
-                    storedWeather.country = weather.country
-                    storedWeather.dt = weather.dt
-                    storedWeather.temp = weather.temp
-                    storedWeather.maxTemp = weather.maxTemp
-                    storedWeather.minTemp = weather.minTemp
-                    storedWeather.sunrise = weather.sunrise
-                    storedWeather.sunset = weather.sunset
-                    storedWeather.weatherDescription = weather.weatherDescription
-                    storedWeather.windSpeed = weather.windSpeed
-                    storedWeather.main = weather.main
-                    storedWeather.home = weather.home
-                    
-                    try context.save() // Save changes
-                    print(" Weather updated successfully!")
-                } else {
-                    print(" Weather entry not found!")
-                }
-            } catch {
-                print(" Error updating weather: \(error.localizedDescription)")
+            let results = try context.fetch(fetchRequest)
+            if let storedWeather = results.first {
+                storedWeather.timezone = weather.timezone
+                storedWeather.city = weather.city
+                storedWeather.country = weather.country
+                storedWeather.dt = weather.dt
+                storedWeather.temp = weather.temp
+                storedWeather.maxTemp = weather.maxTemp
+                storedWeather.minTemp = weather.minTemp
+                storedWeather.sunrise = weather.sunrise
+                storedWeather.sunset = weather.sunset
+                storedWeather.weatherDescription = weather.weatherDescription
+                storedWeather.windSpeed = weather.windSpeed
+                storedWeather.main = weather.main
+                storedWeather.home = weather.home
+
+                try context.save()
+                print("Weather updated successfully!")
+            } else {
+                print("Weather entry not found!")
             }
+        } catch {
+            print("Error updating weather: \(error.localizedDescription)")
         }
-    
-    
+    }
+
     func save() {
         do {
             try context.save()

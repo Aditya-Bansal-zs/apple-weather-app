@@ -10,31 +10,16 @@ import SwiftUI
 struct WeatherCardView: View {
     var weather: WeatherCoreDataModel?
     @ObservedObject var viewModel: WeatherListViewModel
-    var refresh: () -> ()
     
     var body: some View {
         HStack {
-            if viewModel.isEditing {
-                Button(action: {
-                    if let weather = weather {
-                        let vm: EditWeatherViewModel = EditWeatherViewModel(weatherDataManager: WeatherDataManager(),networkManager: NetworkManager())
-                        vm.deleteWeather(weather: weather)
-                        refresh()
-                    }
-                }) {
-                    Image(systemName: "minus.circle.fill")
-                        .foregroundColor(.red)
-                        .padding(.leading, 8)
-                }
-            }
-
             ZStack {
-                Image(viewModel.imageName(main: weather?.main.lowercased() ?? "default"))
+                let theme = WeatherTheme(from: weather?.main ?? "")
+                Image(theme.backgroundImage)
                     .resizable()
                     .scaledToFill()
                     .frame(minWidth: viewModel.isEditing ? 330 : 0, maxWidth: viewModel.isEditing ? 330 : .infinity,
                            maxHeight: viewModel.isEditing ? 140 : 150)
-//                    .animation(.easeInOut(duration: 0.2), value: viewModel.isEditing)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .overlay(
                         RoundedRectangle(cornerRadius: 20)

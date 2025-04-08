@@ -37,8 +37,8 @@ struct MenuView: View {
         }
     }
 }
-
-#Preview {
-    let viewModel = WeatherListViewModel(weatherDataManager: WeatherDataManager(),networkManager: NetworkManager())
-    MenuView(viewModel: viewModel)
-}
+//
+//#Preview {
+//    let viewModel = WeatherListViewModel(weatherDataManager: WeatherDataManager(),networkManager: NetworkManager())
+//    MenuView(viewModel: viewModel)
+//}

@@ -8,7 +8,7 @@
 import Foundation
 
 extension WeatherCoreDataModel {
-    static func from(response: TempWeatherResponseModel,order: Int16,id: UUID?) -> WeatherCoreDataModel {
+    static func from(response: TempWeatherResponseModel,order: Int16,id: UUID?, home: Bool = false) -> WeatherCoreDataModel {
         return WeatherCoreDataModel(
             id: id ?? UUID(),  // Generate a new UUID
             timezone: Int64(response.timezone ?? 0),
@@ -23,7 +23,7 @@ extension WeatherCoreDataModel {
             weatherDescription: response.weather?.first?.description ?? "No Description",
             windSpeed: response.wind?.speed ?? 0.0,
             main: response.weather?.first?.main ?? "Clear",
-            home: false,
+            home: home,
             order: order
         )
     }

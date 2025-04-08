@@ -7,48 +7,31 @@
 
 import SwiftUI
 
-struct WeatherSwipeView: View {
-    @ObservedObject var viewModel: WeatherListViewModel
-    @ObservedObject var locationManager: LocationManager
-    var body: some View {
-        TabView {
-            WeatherView(weatherListViewModel: viewModel, cityName: locationManager.city, cityCountry: locationManager.country, adding: {})
-            ForEach(viewModel.weathers, id: \.id) { weather in
-                if let cityName = weather.city,
-                   let countryName = weather.country{
-                    WeatherView(weatherListViewModel: viewModel, cityName: cityName, cityCountry: countryName) {
-                    }
-                } else {
-                    Text("Unknown City")
-                        .font(.title)
-                        .foregroundColor(.gray)
-                }
-            }
-        }
-        .tabViewStyle(.page(indexDisplayMode: .always))
-    }
-}
 struct HomeScreen: View {
-    @StateObject var locationManager: LocationManager = LocationManager()
-    @StateObject var viewModel: WeatherListViewModel = WeatherListViewModel(weatherDataManager: WeatherDataManager(),networkManager: NetworkManager())
+
+    @StateObject var viewModel: WeatherListViewModel
+
+    init(initialWeathers: [WeatherCoreDataModel]) {
+        _viewModel = StateObject(wrappedValue: WeatherListViewModel(
+            weatherDataManager: WeatherDataManager(),
+            networkManager: NetworkManager(),
+            weathers: initialWeathers)
+        )
+    }
+
     var body: some View {
         TabView {
-            WeatherSwipeView(viewModel: viewModel, locationManager: locationManager)
+            WeatherSlidingView(viewModel: viewModel)
             .tabItem {
                 Image(systemName: "sun.max.fill")
                 Text("Weather")
             }
-            MainScreenView(viewModel: viewModel)
+
+            WeatherListView(viewModel: viewModel)
             .tabItem {
-                Image(systemName: "line.3.horizontal")
+                Image(systemName: "list.bullet")
                 Text("More")
             }
         }.toolbarBackground(.hidden, for: .tabBar)
-
-//        .accentColor(.primary)
     }
-}
-
-#Preview {
-    HomeScreen()
 }

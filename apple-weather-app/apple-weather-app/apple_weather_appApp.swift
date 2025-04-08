@@ -9,9 +9,10 @@ import SwiftUI
 
 @main
 struct apple_weather_appApp: App {
+    
     var body: some Scene {
         WindowGroup {
-            HomeScreen()
+            WeatherSplashView()
         }
     }
 }

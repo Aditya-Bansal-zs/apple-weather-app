@@ -9,12 +9,15 @@ import SwiftUI
 
 struct SearchView: View {
     @ObservedObject var viewModel: WeatherListViewModel
-    
+    var disabling: () -> ()
     var body: some View {
         NavigationStack {
             List(viewModel.filteredCity) { city in
                 Button {
                     viewModel.selectedCity = city
+                    Task {
+                        await viewModel.fetchWeatherFromAPI(cityName: city.cityName, cityCountry: city.cityCountry)
+                    }
                 } label: {
                     VStack(alignment: .leading) {
                         Text(city.cityName)
@@ -31,8 +34,9 @@ struct SearchView: View {
         }
         .sheet(item: $viewModel.selectedCity) { city in
             NavigationStack {
-                WeatherView(weatherListViewModel: viewModel, cityName: city.cityName, cityCountry: city.cityCountry){
+                WeatherView(weather: viewModel.weatherData){
                     viewModel.fetchWeather()
+                    disabling()
                 }
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
@@ -52,7 +56,7 @@ struct SearchView: View {
     }
 }
 
-#Preview {
-    let viewModel = WeatherListViewModel(weatherDataManager: WeatherDataManager(),networkManager: NetworkManager())
-    SearchView(viewModel: viewModel)
-}
+//#Preview {
+//    let viewModel = WeatherListViewModel(weatherDataManager: WeatherDataManager(),networkManager: NetworkManager())
+//    SearchView(viewModel: viewModel){}
+//}

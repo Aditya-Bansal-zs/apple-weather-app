@@ -8,60 +8,35 @@
 import Foundation
 
 class EditWeatherViewModel: ObservableObject {
-    @Published var weathers: [WeatherCoreDataModel] = []
+    var weathers: [WeatherCoreDataModel] = []
     @Published var weatherData: TempWeatherResponseModel?
     @Published var main: String? = nil
-
+    @Published var isLoading: Bool = false
     private var networkManager: WeatherProvider
     let weatherDataManager: WeatherManagerProtocol
     var weather: WeatherCoreDataModel?
-
     init(weatherDataManager: WeatherManagerProtocol ,networkManager: WeatherProvider ) {
         self.weatherDataManager = weatherDataManager
         self.networkManager = networkManager
         fetchWeatherFromCoreData()
     }
 
-    func fetchWeatherFromAPI(cityName: String, cityCountry: String) async {
-        do {
-            let weather = try await networkManager.fetchWeather(city: cityName, country: cityCountry)
-            await MainActor.run {
-                self.weatherData = weather
-                self.main = weather.weather?.first?.main
-            }
-        } catch {
-            print("Error fetching weather: \(error.localizedDescription)")
-        }
-    }
-
-    func imageName(main: String) -> String {
-        switch main {
-        case "clear" :
-            return "clear"
-        case "clouds" :
-            return "clouds"
-        default :
-            return "default"
-        }
-    }
-
-    func addWeather(weather: TempWeatherResponseModel) {
+    func addWeather(weather: WeatherCoreDataModel) {
         print("Before adding new weather")
         for weather in weathers {
             print("\(weather.city ?? "") \(weather.order)")
         }
-        let newWeather = WeatherCoreDataModel.from(response: weather,order: Int16(weathers.count), id: UUID())
-        weatherDataManager.addWeather(weather: newWeather)
+        weatherDataManager.addWeather(weather: weather)
         print("After adding new weather")
         for weather in weathers {
             print("\(weather.city ?? "") \(weather.order)")
         }
     }
 
-    func isWeatherAlreadyStored() -> Bool {
-        guard let weatherData = weatherData,
-              let city = weatherData.name,
-              let country = weatherData.sys?.country else {
+    func isWeatherAlreadyStored(weather: WeatherCoreDataModel?) -> Bool {
+        guard let weather = weather,
+              let city = weather.city,
+              let country = weather.country else {
             return false
         }
 
@@ -75,5 +50,12 @@ class EditWeatherViewModel: ObservableObject {
 
     func fetchWeatherFromCoreData() {
         weathers = weatherDataManager.mapEntityToModel().sorted { $0.order < $1.order }
+    }
+
+    func tempUnit(temp: Double?) -> String {
+        guard let temp = temp else { return "Error in loading Temperature" }
+        let saved = UserDefaults.standard.string(forKey: "tempUnit") ?? WeatherUtils.celsius.rawValue
+        let unit = WeatherUtils(rawValue: saved) ?? .celsius
+        return unit.format(tempInCelsius: temp)
     }
 }

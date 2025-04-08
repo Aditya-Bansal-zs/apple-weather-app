@@ -16,7 +16,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var userLocation: CLLocation?
     @Published var city: String = ""
     @Published var country: String = ""
-    
+
+    private var hasResolvedLocation = false
+
     override init() {
         super.init()
         locationManager.delegate = self
@@ -24,31 +26,65 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         requestPermission()
     }
 
-    /// Request location permission
     func requestPermission() {
         locationManager.requestWhenInUseAuthorization()
         locationManager.startUpdatingLocation()
     }
 
-    /// CLLocationManager Delegate: Updates location
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        switch manager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            locationManager.startUpdatingLocation()
+        default:
+            print("Location permission not granted.")
+        }
+    }
+
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last else { return }
-        DispatchQueue.main.async {
-            self.userLocation = location
+        guard !hasResolvedLocation, let location = locations.last else { return }
+
+        hasResolvedLocation = true
+        locationManager.stopUpdatingLocation()
+        userLocation = location
+        print(" Location updated: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.getCityAndCountry(from: location)
         }
     }
 
-    /// Reverse Geocode: Get City & Country from Coordinates
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print(" Location update failed: \(error.localizedDescription)")
+    }
+
     private func getCityAndCountry(from location: CLLocation) {
+        print("Attempting reverse geocode for: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+        
         geocoder.reverseGeocodeLocation(location) { placemarks, error in
-            if let placemark = placemarks?.first {
+            if let error = error {
+                print(" Reverse geocoding failed: \(error.localizedDescription)")
+                // Fallback values
                 DispatchQueue.main.async {
-                    self.city = placemark.locality ?? "Unknown City"
-                    self.country = placemark.country ?? "Unknown Country"
+                    self.city = "Bengaluru"
+                    self.country = "India"
                 }
+                return
+            }
+
+            guard let placemark = placemarks?.first else {
+                print(" No placemarks found.")
+                DispatchQueue.main.async {
+                    self.city = "Bengaluru"
+                    self.country = "India"
+                }
+                return
+            }
+
+            DispatchQueue.main.async {
+                self.city = placemark.locality ?? "Bengaluru"
+                self.country = placemark.country ?? "India"
+                print(" Resolved location: \(self.city), \(self.country)")
             }
         }
     }
 }
-
