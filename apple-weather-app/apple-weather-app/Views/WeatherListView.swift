@@ -9,14 +9,15 @@ import SwiftUI
 
 struct WeatherListView: View {
     @ObservedObject var viewModel: WeatherListViewModel
-    @State var searchText: String = ""
+//    @State var searchText: String = ""
+    
     @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
         NavigationStack {
             VStack {
                 HStack {
-                    TextField("Search", text: $searchText)
+                    TextField("Search", text: $viewModel.searchText)
                         .padding(10)
                         .background(Color(.systemGray6))
                         .cornerRadius(10)
@@ -29,7 +30,7 @@ struct WeatherListView: View {
                                 Spacer()
                                 if isTextFieldFocused {
                                     Button(action: {
-                                        searchText = ""
+                                        viewModel.searchText = ""
                                         isTextFieldFocused = false
                                     }) {
                                         Image(systemName: "xmark.circle.fill")
@@ -40,9 +41,11 @@ struct WeatherListView: View {
                             }
                         )
                 }
+                Spacer()
                 if isTextFieldFocused {
                     SearchView(viewModel: viewModel) {
-                        searchText = ""
+                        viewModel.searchText = ""
+//                        searchText = ""
                         isTextFieldFocused = false
                     }
                 }

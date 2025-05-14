@@ -6,40 +6,36 @@
 //
 
 import SwiftUI
+import MapKit
 
-struct WeatherRow: View {
-    let weather: TempWeatherResponseModel
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text(weather.name ?? "No name")
-                .font(.headline)
-            Text("Temperature: \(String(format: "%.1f", weather.main.temp))°C")
-                .font(.subheadline)
-        }
-    }
-}
 //struct ContentView: View {
-//    @StateObject var viewModel: ContentViewModel = ContentViewModel()
-//    var body: some View {
-//        NavigationView {
+//    @StateObject private var viewModel = CitySearchViewModel()
+//
+//        var body: some View {
 //            VStack {
-//                List(viewModel.weathers, id: \.id) { weather in
-//                    WeatherRow(weather: weather)
-//                }
+//                TextField("Search for city", text: $viewModel.searchText)
+//                    .padding()
+//                    .textFieldStyle(.roundedBorder)
+//                    .onChange(of: viewModel.searchText) { _ in
+//                        Task {
+//                            await viewModel.fetchCities()
+//                        }
+//                    }
+//
+//                List(viewModel.results) { city in
+//                    VStack(alignment: .leading) {
+//                        Text(city.name)
+//                            .font(.headline)
+//                        Text("\(city.state ?? ""), \(city.country)")
+//                            .font(.subheadline)
+//                            .foregroundColor(.gray)
+//                    }
+//                }.listStyle(.plain)
 //            }
-//            .navigationTitle("Weather Forecast")
+//            .padding()
 //        }
-//        .task {
-//            do {
-//                try await viewModel.fetchWeather(city: "Tonk", country: "ind")
-//            } catch {
-//                print(error.localizedDescription)
-//                print("Error: \(error)")
-//            }
-//        }
-//    }
 //}
+
 
 //#Preview {
 //    ContentView()

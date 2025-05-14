@@ -79,5 +79,14 @@ class NetworkManager: WeatherProvider {
             throw NetworkError.invalidResponse
         }
     }
-    
+    func buildCitySearchURL(query: String) -> URL? {
+        guard !query.isEmpty else { return nil }
+        let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let urlString = "https://api.openweathermap.org/geo/1.0/direct?q=\(encodedQuery)&limit=5&appid=\(apiKey)"
+        return URL(string: urlString)
+    }
+    func getCities(from url: URL) async throws -> [CityModel] {
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode([CityModel].self, from: data)
+    }
 }

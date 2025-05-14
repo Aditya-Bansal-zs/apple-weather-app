@@ -9,4 +9,6 @@ import Foundation
 
 protocol WeatherProvider {
     func fetchWeather(city: String,country: String) async throws-> TempWeatherResponseModel
+    func buildCitySearchURL(query: String) -> URL?
+    func getCities(from url: URL) async throws -> [CityModel]
 }
